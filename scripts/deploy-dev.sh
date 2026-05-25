@@ -105,24 +105,21 @@ if ! command_exists gcloud; then
 fi
 print_success "gcloud is installed"
 
-print_info "Authenticating with Service Account..."
-
-if [ -z "$SERVICE_ACCOUNT_KEY_PATH" ]; then
-    print_error "SERVICE_ACCOUNT_KEY_PATH not set in .env file"
-    exit 1
-fi
-
-if [ ! -f "$SERVICE_ACCOUNT_KEY_PATH" ]; then
-    print_error "Service account key file not found: $SERVICE_ACCOUNT_KEY_PATH"
-    exit 1
-fi
-
-if gcloud auth activate-service-account --key-file="$SERVICE_ACCOUNT_KEY_PATH" --quiet 2>&1; then
+# Use credentials from GitHub Actions (GOOGLE_APPLICATION_CREDENTIALS is set by google-github-actions/auth)
+if [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ] && [ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
     SERVICE_ACCOUNT_EMAIL=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | head -n 1)
-    print_success "Service account activated: $SERVICE_ACCOUNT_EMAIL"
+    print_success "Using authenticated credentials: $SERVICE_ACCOUNT_EMAIL"
+elif [ -n "$SERVICE_ACCOUNT_KEY_PATH" ] && [ -f "$SERVICE_ACCOUNT_KEY_PATH" ]; then
+    print_info "Authenticating with Service Account..."
+    if gcloud auth activate-service-account --key-file="$SERVICE_ACCOUNT_KEY_PATH" --quiet 2>&1; then
+        SERVICE_ACCOUNT_EMAIL=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | head -n 1)
+        print_success "Service account activated: $SERVICE_ACCOUNT_EMAIL"
+    else
+        print_error "Failed to activate service account"
+        exit 1
+    fi
 else
-    print_error "Failed to activate service account"
-    exit 1
+    print_warning "No explicit service account authentication - using default credentials"
 fi
 
 echo ""
