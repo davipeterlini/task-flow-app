@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { storage } from "../../src/services/storage";
 
 describe("storage service", () => {
